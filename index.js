@@ -39,6 +39,7 @@ async function run() {
   await client.connect();
   const itemCollection = client.db("electrix").collection("items");
   const userCollection = client.db("electrix").collection("users");
+  const reviewCollection = client.db("electrix").collection("reviews");
 
   // get data
   app.get("/item", async (req, res) => {
@@ -79,6 +80,12 @@ async function run() {
     }
     const result = await itemCollection.insertOne(newItem);
     return res.send({ success: true, result });
+  });
+
+  app.post("/review", async (req, res) => {
+    const newReview = req.body;
+    const result = await reviewCollection.insertOne(newReview);
+    res.send(result);
   });
 
   app.put("/user/admin/:email", async (req, res) => {
