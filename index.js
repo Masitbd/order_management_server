@@ -38,14 +38,21 @@ function verifyJWT(req, res, next) {
 async function run() {
   await client.connect();
   const itemCollection = client.db("electrix").collection("items");
+  const userCollection = client.db("electrix").collection("users");
 
   // get data
-
   app.get("/item", async (req, res) => {
     const query = {};
     const cursor = itemCollection.find(query);
     const items = await cursor.toArray();
     res.send(items);
+  });
+
+  app.get("/users", async (req, res) => {
+    const query = {};
+    const cursor = userCollection.find(query);
+    const users = await cursor.toArray();
+    res.send(users);
   });
 
   app.get("/item/:id", async (req, res) => {
@@ -72,6 +79,18 @@ async function run() {
     }
     const result = await itemCollection.insertOne(newItem);
     return res.send({ success: true, result });
+  });
+
+  app.put("/user/:email", async (req, res) => {
+    const email = req.params.email;
+    const user = req.body;
+    const filter = { email: email };
+    const options = { upsert: true };
+    const updateDoc = {
+      $set: user,
+    };
+    const result = await userCollection.updateOne(filter, updateDoc, options);
+    res.send(result);
   });
 }
 run().catch(console.dir);
