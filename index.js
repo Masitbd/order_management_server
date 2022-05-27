@@ -1,8 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cli = require("nodemon/lib/cli");
+const { response } = require("express");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -17,6 +19,21 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "UnAuthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 async function run() {
   await client.connect();
@@ -39,10 +56,22 @@ async function run() {
     res.send(item);
   });
 
+  app.get("/myOrder", async (req, res) => {
+    const email = req.query.email;
+    const query = { email: email };
+    const myOrder = await itemCollection.find(query).toArray();
+    res.send(myOrder);
+  });
+
   app.post("/item", async (req, res) => {
     const newItem = req.body;
+    const name = { name: newItem.name, email: newItem.email };
+    const exists = await itemCollection.findOne(name);
+    if (exists) {
+      return res.send({ success: false, newItem: exists });
+    }
     const result = await itemCollection.insertOne(newItem);
-    res.send(result);
+    return res.send({ success: true, result });
   });
 }
 run().catch(console.dir);
